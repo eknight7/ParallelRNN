@@ -83,7 +83,7 @@ We will optimize RNN training performance on multi-core CPUs.</p>
 
 <p>A fast parallel implementation of RNN should use training data of arbitrary sizes efficiently and also try to optimize over dependencies of the gradient descent updates to the 3 weight matrices for multiple hidden units.</p>
 
-<p>We believe one way to solve this problem is to implement a data-parallel RNN training scheme, that batches up sets of data (or the entire set of data) and feeds it directly to the network for training. We are also investing some other approaches, such as those described in (2).</p>
+<p>We believe one way to solve this problem is to implement a data-parallel RNN training scheme, that batches up sets of data (or the entire set of data) and feeds it directly to the network for training. We are also investigating some other approaches, such as those described in (2).</p>
 
 <h1>
 <a id="goalsdeliverables" class="anchor" href="#goalsdeliverables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Goals/Deliverables</h1>
