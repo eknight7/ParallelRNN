@@ -64,7 +64,7 @@ We will optimize RNN training performance on multi-core CPUs.</p>
 <li>For a given input x, hidden unit set s, the output unit set is o. U, V and W represent the weight matrices for weights from input to hidden units, hidden units to output units and hidden to hidden units respectively.</li>
 <li>We "unroll" the RNN to better understand its representation over time. Note that the weight matrices for each connection type are the same for each input, hidden and output units triplet. </li>
 <li>
-<em>x<sub>t</sub></em> is the input at time-step t, <em>s<sub>t</sub></em> is the hidden unit at time-step t, <em>o<sub>t</sub></em> is the output at time-step t</li>
+<em>x<sub>t</sub></em>, <em>s<sub>t</sub></em>, <em>o<sub>t</sub></em> are the input, hidden unit and output at time-step t respectively.</li>
 <li>
 <em>s<sub>t</sub> = f(Ux<sub>t</sub> + Ws<sub>t-1</sub>)</em> where <em>f</em> is a non-linear function such as <em>tanh</em> or the sigmoid function.</li>
 <li><em>o<sub>t</sub> = softmax(Vs<sub>t</sub>)</em></li>
@@ -90,14 +90,14 @@ We will optimize RNN training performance on multi-core CPUs.</p>
 
 <ul>
 <li>
-<p>Plan: </p>
+Plan:
 <ul>
 <li>Successfully implement a fast, parallel implementation of RNN on multi-core CPUs, using one of OpenMP, ISPC and Halide.</li>
 <li>Present results and benchmarks on our parallel RNN framework's correctness and speed as compared to a sequential version on a few datasets (either language based or image based).</li>
 </ul>
 </li>
 <li>
-<p>Hope:</p>
+Hope:
 <ul>
 <li>Implement a parallel RNN framework in more than one of Halide, ISPC or OpenMP and compare and analyze these implementations.</li>
 </ul>
