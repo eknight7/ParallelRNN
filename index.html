@@ -59,29 +59,36 @@
 <a id="progress" class="anchor" href="#progress" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Progress</h2>
 
 <ol>
-<li>We have code for training RNNs using Theano and Python with Numpy.</li>
-<li>We have a better understanding of the Backpropagation Through Time (BPTT) for RNNs, and how some parts of it can depend
-on our choice of the non-linear activation. Our Python code presently uses <code>tanh</code>, a popular set of choices is [<code>tanh</code>, <code>sigmoid</code>, <code>ReLU</code>]. </li>
-<li>We have gone through Halide tutorials and have decided to code our RNN implementation using Halide. We decided this
+<li><p>We have code for training RNNs using Theano and Python with Numpy.</p></li>
+<li><p>We have a better understanding of the Backpropagation Through Time (BPTT) for RNNs, and how some parts of it can depend
+on our choice of the non-linear activation. Our Python code presently uses <code>tanh</code>, a popular set of choices is [<code>tanh</code>, <code>sigmoid</code>, <code>ReLU</code>]. </p></li>
+<li><p>We have gone through Halide tutorials and have decided to code our RNN implementation using Halide. We decided this
 because of the efficiency of matrix operations in Halide. Another reason is that while we can use OpenBLAS or similar BLAS
-libraries in C++ for efficient matrix algebra, we don't have to reimplement our RNN if we want to test it on GPU.</li>
+libraries in C++ for efficient matrix algebra, we don't have to reimplement our RNN if we want to test it on GPU.</p></li>
 </ol>
 
 <h2>
 <a id="evaluation-plan" class="anchor" href="#evaluation-plan" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Evaluation Plan</h2>
 
 <ol>
-<li>We will compare our parallel RNN implementation speedup against a Theano implementation. We are familiar with Theano
-and we know Theano compiles optimized code for different platforms.</li>
-<li>It is a fact that simple, 1 hidden layer RNNs are not widely used at this time because of more interesting networks like multi-layer RNNs and LSTMs. This implies a difficulty in finding good problems and datasets to test our implementation. However, our goal is to parallelize and efficiently train a 1 hidden layer RNN. We therefore have come up with 2 types of problems for testing our RNNs:
-i. Learning simple convolutional filters - RNNs are designed to learn about temporal dependencies for a given data sequence of values at different time-steps. We can treat images as sequences of pixels, so that a row of pixels <code>[0 0 100 200]</code> can be thought of as a sequence of pixels observed at time-steps 0,1,2,3. This is similar to "walking" along the columns of an image from left to right. Treating images in this manner allows us to learn simple filters like a 1D Sobel filter <code>[-1 0 1]</code> for example (we have code in Theano for this). Further, data generation and scalability work into this problem well, because we can simply generate a lot of images or use a popular dataset like MNIST, and train and test our implementation.
-ii. Dealing with image sequences, videos - We can setup an RNN to generate sequences of spatial differences between frames. Problem setup:
-    1. Input to the RNN model: A sequence of consecutive frames
-    2. Output of the RNN model: A sequence of temporal differences between frame at time t-1 and time t
-    3. Size of dataset: Unlimited since we can generate dataset from lots of images by applying transformations to it/Or we can get videos and train on these videos
-    4. Size of input/output: Depends on size of images which can vary
-    5. Final evaluation in terms of functionalities: This RNN model can be easily trained for small inputs. However, it is uncertain if the RNN can learn well for large images because the network might not be able to find the correct optima when the input is too large because the layers are fully connected. In order to evaluate this, we may need to check size of images from small (20x20) to large (200x200).
-    6. Final evaluation in terms of parallelism testing: Since our project is primarily focused on using Halide to schedule the RNN computation, it is important to test the scheduling against multiple parameters to identify the various machine factors involved such as caching, RAM or even disk memory access speed as input increases. </li>
+<li><p>We will compare our parallel RNN implementation speedup against a Theano implementation. We are familiar with Theano
+and we know Theano compiles optimized code for different platforms.</p></li>
+<li>
+<p>It is a fact that simple, 1 hidden layer RNNs are not widely used at this time because of more interesting networks like multi-layer RNNs and LSTMs. This implies a difficulty in finding good problems and datasets to test our implementation. However, our goal is to parallelize and efficiently train a 1 hidden layer RNN. We therefore have come up with 2 types of problems for testing our RNNs:</p>
+
+<p>i. Learning simple convolutional filters - RNNs are designed to learn about temporal dependencies for a given data sequence of values at different time-steps. We can treat images as sequences of pixels, so that a row of pixels <code>[0 0 100 200]</code> can be thought of as a sequence of pixels observed at time-steps <code>0,1,2,3</code>. This is similar to "walking" along the columns of an image from left to right. Treating images in this manner allows us to learn simple filters like a 1D Sobel filter <code>[-1 0 1]</code> for example (we have code in Theano for this). Further, data generation and scalability work into this problem well, because we can simply generate a lot of images or use a popular dataset like MNIST, and train and test our implementation.</p>
+
+<p>ii. Dealing with image sequences, videos - We can setup an RNN to generate sequences of spatial differences between frames. Problem setup:</p>
+
+<ol>
+<li>Input to the RNN model: A sequence of consecutive frames</li>
+<li>Output of the RNN model: A sequence of temporal differences between frame at time t-1 and time t</li>
+<li>Size of dataset: Unlimited since we can generate dataset from lots of images by applying transformations to it/Or we can get videos and train on these videos</li>
+<li>Size of input/output: Depends on size of images which can vary</li>
+<li>Final evaluation in terms of functionalities: This RNN model can be easily trained for small inputs. However, it is uncertain if the RNN can learn well for large images because the network might not be able to find the correct optima when the input is too large because the layers are fully connected. In order to evaluate this, we may need to check size of images from small (20x20) to large (200x200).</li>
+<li>Final evaluation in terms of parallelism testing: Since our project is primarily focused on using Halide to schedule the RNN computation, it is important to test the scheduling against multiple parameters to identify the various machine factors involved such as caching, RAM or even disk memory access speed as input increases. </li>
+</ol>
+</li>
 </ol>
 
 <h2>
