@@ -74,7 +74,7 @@ libraries in C++ for efficient matrix algebra, we don't have to reimplement our 
 
 <ol>
 <li><p>We will compare our parallel RNN implementation speedup against a Theano implementation. We are familiar with Theano
-and we know Theano compiles optimized code for different platforms.</p></li>
+and we know Theano compiles optimized code for different platforms. Our implementation will be benchmarked against similar performance in Theano with the exact same network structure (this means that if our network does not use bias, the Theano one will not use bias either). When our implementation uses mini-batch data-parallelism for training the network, the Theano implementation will use mini-batch training using Matrix-Matrix multiplication (Weights Matrices and Batches of Training Vectors concatenated into a matrix) and Theano's API for calculating gradients.</p></li>
 <li>
 <p>It is a fact that simple, 1 hidden layer RNNs are not widely used at this time because of more interesting networks like multi-layer RNNs and LSTMs. This implies a difficulty in finding good problems and datasets to test our implementation. However, our goal is to parallelize and efficiently train a 1 hidden layer RNN. We therefore have come up with 2 types of problems for testing our RNNs:</p>
 
