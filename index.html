@@ -39,19 +39,72 @@
         <ul></ul>
       </nav>
       <section>
-        <h1>
-<a id="team-members" class="anchor" href="#team-members" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Team Members</h1>
+        <h3>
+<a id="team-members-esha-uboweja-bojian-han" class="anchor" href="#team-members-esha-uboweja-bojian-han" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Team Members Esha Uboweja, Bojian Han</h3>
+
+<h1>
+<a id="project-checkpoint" class="anchor" href="#project-checkpoint" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Checkpoint</h1>
+
+<h2>
+<a id="needs-attention" class="anchor" href="#needs-attention" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Needs attention</h2>
+
+<p>We need the following setup on "latedays" machines so that we can test our implementation on the Xeon Phi:</p>
+
+<ul>
+<li>Theano for Python</li>
+<li>Halide (requires a new LLVM version)</li>
+</ul>
+
+<h2>
+<a id="progress" class="anchor" href="#progress" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Progress</h2>
+
+<ol>
+<li>We have code for training RNNs using Theano and Python with Numpy.</li>
+<li>We have a better understanding of the Backpropagation Through Time (BPTT) for RNNs, and how some parts of it can depend
+on our choice of the non-linear activation. Our Python code presently uses <code>tanh</code>, a popular set of choices is [<code>tanh</code>, <code>sigmoid</code>, <code>ReLU</code>]. </li>
+<li>We have gone through Halide tutorials and have decided to code our RNN implementation using Halide. We decided this
+because of the efficiency of matrix operations in Halide. Another reason is that while we can use OpenBLAS or similar BLAS
+libraries in C++ for efficient matrix algebra, we don't have to reimplement our RNN if we want to test it on GPU.</li>
+</ol>
+
+<h2>
+<a id="evaluation-plan" class="anchor" href="#evaluation-plan" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Evaluation Plan</h2>
+
+<ol>
+<li>We will compare our parallel RNN implementation speedup against a Theano implementation. We are familiar with Theano
+and we know Theano compiles optimized code for different platforms.</li>
+<li>It is a fact that simple, 1 hidden layer RNNs are not widely used at this time because of more interesting networks like multi-layer RNNs and LSTMs. This implies a difficulty in finding good problems and datasets to test our implementation. However, our goal is to parallelize and efficiently train a 1 hidden layer RNN. We therefore have come up with 2 types of problems for testing our RNNs:
+i. Learning simple convolutional filters - RNNs are designed to learn about temporal dependencies for a given data sequence of values at different time-steps. We can treat images as sequences of pixels, so that a row of pixels <code>[0 0 100 200]</code> can be thought of as a sequence of pixels observed at time-steps 0,1,2,3. This is similar to "walking" along the columns of an image from left to right. Treating images in this manner allows us to learn simple filters like a 1D Sobel filter <code>[-1 0 1]</code> for example (we have code in Theano for this). Further, data generation and scalability work into this problem well, because we can simply generate a lot of images or use a popular dataset like MNIST, and train and test our implementation.
+ii. Dealing with image sequences, videos - We can setup an RNN to generate sequences of spatial differences between frames. Problem setup:
+    1. Input to the RNN model: A sequence of consecutive frames
+    2. Output of the RNN model: A sequence of temporal differences between frame at time t-1 and time t
+    3. Size of dataset: Unlimited since we can generate dataset from lots of images by applying transformations to it/Or we can get videos and train on these videos
+    4. Size of input/output: Depends on size of images which can vary
+    5. Final evaluation in terms of functionalities: This RNN model can be easily trained for small inputs. However, it is uncertain if the RNN can learn well for large images because the network might not be able to find the correct optima when the input is too large because the layers are fully connected. In order to evaluate this, we may need to check size of images from small (20x20) to large (200x200).
+    6. Final evaluation in terms of parallelism testing: Since our project is primarily focused on using Halide to schedule the RNN computation, it is important to test the scheduling against multiple parameters to identify the various machine factors involved such as caching, RAM or even disk memory access speed as input increases. </li>
+</ol>
+
+<h2>
+<a id="revised-schedule" class="anchor" href="#revised-schedule" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Revised Schedule</h2>
+
+<hr>
+
+<h1>
+<a id="project-proposal" class="anchor" href="#project-proposal" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Proposal</h1>
+
+<h2>
+<a id="team-members" class="anchor" href="#team-members" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Team Members</h2>
 
 <p>Esha Uboweja, Bojian Han</p>
 
-<h1>
-<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Summary</h1>
+<h2>
+<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Summary</h2>
 
 <p>We are going to implement a fast, parallel version of Recurrent Neural Networks (RNNs).
 We will optimize RNN training performance on multi-core CPUs.</p>
 
-<h1>
-<a id="background" class="anchor" href="#background" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Background</h1>
+<h2>
+<a id="background" class="anchor" href="#background" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Background</h2>
 
 <p>RNNs are neural networks that make use of memory to store certain pieces of information, so that outputs at a time-step t are dependent on inputs at time-step t, as well as inputs at time-steps t-1, t-2, etc. While the duration of this "memory" is short, i.e. output at t is dependent only up to T steps back in time, such recurrent dependency pattern requires the network to be iterative in at least 2 ways. Firstly, as in many neural networks, an epoch of training can happen only after a previous epoch of training is completely. This iterative dependency is most likely unavoidable. Further, training the RNN's hidden units for each time-step happens iteratively, so that the update to the hidden unit at time t depends on the update to the hidden unit at time (t-1). This is the core idea implemented as "Back-propagation Through Time" or BPTT for RNNs.</p>
 
@@ -64,15 +117,15 @@ We will optimize RNN training performance on multi-core CPUs.</p>
 <li>For a given input x, hidden unit set s, the output unit set is o. U, V and W represent the weight matrices for weights from input to hidden units, hidden units to output units and hidden to hidden units respectively.</li>
 <li>We "unroll" the RNN to better understand its representation over time. Note that the weight matrices for each connection type are the same for each input, hidden and output units triplet. </li>
 <li>
-<em>x<sub>t</sub></em>, <em>s<sub>t</sub></em>, <em>o<sub>t</sub></em> are the input, hidden unit and output at time-step t respectively.</li>
+<em>x<sub>t</sub></em> is the input at time-step t, <em>s<sub>t</sub></em> is the hidden unit at time-step t, <em>o<sub>t</sub></em> is the output at time-step t</li>
 <li>
 <em>s<sub>t</sub> = f(Ux<sub>t</sub> + Ws<sub>t-1</sub>)</em> where <em>f</em> is a non-linear function such as <em>tanh</em> or the sigmoid function.</li>
 <li><em>o<sub>t</sub> = softmax(Vs<sub>t</sub>)</em></li>
 <li>Note that even though in this figure the number of outputs is equal to the number of inputs, in general this may not be the case.</li>
 </ul>
 
-<h1>
-<a id="challenges" class="anchor" href="#challenges" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Challenges</h1>
+<h2>
+<a id="challenges" class="anchor" href="#challenges" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Challenges</h2>
 
 <ul>
 <li>As discussed in the Background section, there are a lot of iterative dependencies in RNN, which makes it challenging to implement them in parallel</li>
@@ -83,36 +136,38 @@ We will optimize RNN training performance on multi-core CPUs.</p>
 
 <p>A fast parallel implementation of RNN should use training data of arbitrary sizes efficiently and also try to optimize over dependencies of the gradient descent updates to the 3 weight matrices for multiple hidden units.</p>
 
-<p>We believe one way to solve this problem is to implement a data-parallel RNN training scheme, that batches up sets of data (or the entire set of data) and feeds it directly to the network for training. We are also investigating some other approaches, such as those described in (2).</p>
+<p>We believe one way to solve this problem is to implement a data-parallel RNN training scheme, that batches up sets of data (or the entire set of data) and feeds it directly to the network for training. We are also investing some other approaches, such as those described in (2).</p>
 
-<h1>
-<a id="goalsdeliverables" class="anchor" href="#goalsdeliverables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Goals/Deliverables</h1>
+<h2>
+<a id="goalsdeliverables" class="anchor" href="#goalsdeliverables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Goals/Deliverables</h2>
 
 <ul>
 <li>
-Plan:
+<p>Plan: </p>
+
 <ul>
 <li>Successfully implement a fast, parallel implementation of RNN on multi-core CPUs, using one of OpenMP, ISPC and Halide.</li>
 <li>Present results and benchmarks on our parallel RNN framework's correctness and speed as compared to a sequential version on a few datasets (either language based or image based).</li>
 </ul>
 </li>
 <li>
-Hope:
+<p>Hope:</p>
+
 <ul>
 <li>Implement a parallel RNN framework in more than one of Halide, ISPC or OpenMP and compare and analyze these implementations.</li>
 </ul>
 </li>
 </ul>
 
-<h1>
-<a id="resources" class="anchor" href="#resources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Resources</h1>
+<h2>
+<a id="resources" class="anchor" href="#resources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Resources</h2>
 
 <p>We will write code in C++ (or perhaps Halide). C++ is our first choice because we have used it throughout the semester for class assignments and we know our code doesn't require any additional setup on gates machines or on the "latedays" machine cluster. We are new to using Halide, which is a Domain Specific Language (DSL) for image processing. In Halide, the matrix computations could be faster, but we will finalize our choice of language in our first project week.</p>
 
 <p>We are programming a CPU-based implementation because while GPUs are very common, a multi-core CPU is a more common platform, and perhaps even cheaper. If time permits, we may look into a GPU based implementation (and modify our "Hope to achieve" set of goals!).</p>
 
-<h1>
-<a id="schedule" class="anchor" href="#schedule" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schedule</h1>
+<h2>
+<a id="schedule" class="anchor" href="#schedule" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schedule</h2>
 
 <ul>
 <li>April 02 - April 08: Implement serial RNN from scratch in C++</li>
@@ -123,8 +178,8 @@ Hope:
 <li>May 6 - May 9: Work on presentation</li>
 </ul>
 
-<h1>
-<a id="references" class="anchor" href="#references" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>References</h1>
+<h2>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>References</h2>
 
 <ol>
 <li><a href="http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-1-introduction-to-rnns/">http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-1-introduction-to-rnns/</a></li>
