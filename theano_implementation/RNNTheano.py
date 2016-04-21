@@ -2,11 +2,14 @@ __author__ = 'Esha Uboweja'
 
 # RNN Implementation in Theano
 
+import abc
 import numpy as np
 import theano
 import theano.tensor as TT
+from datetime import datetime
 
-class RNNTheano:
+class RNNTheano(object):
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, nh, nin, nout):
         """
@@ -75,8 +78,19 @@ class RNNTheano:
                  y_t: updated output at time-step t
         """
         h_t = TT.tanh(TT.dot(x_t, W_xh) + TT.dot(h_tm1, W_hh))
-        y_t = TT.dot(h_t, W_hy)
+        y_t = TT.tanh(TT.dot(h_t, W_hy))
         return h_t, y_t
+
+    @abc.abstractmethod
+    def genData(self, dataLen):
+        """
+        Generate data for training / testing the network
+        :param dataLen: length of data sequence over time
+        :param nin: number of input units
+        :return: x - dataLen x 1 vector of values,
+                 t - dataLen x 1 vector of containing target results
+        """
+        return
 
     def saveNetwork(self, paramFile):
         """
@@ -86,3 +100,44 @@ class RNNTheano:
         W_hh, W_xh, W_hy = self.W_hh.get_value(), self.W_xh.get_value(), \
                            self.W_hy.get_value()
         np.savez(paramFile, W_hh=W_hh, W_xh=W_xh, W_hy=W_hy)
+
+    def trainNetwork(self, iters, dataLen, step, dataDir, filePrefix):
+        """
+        Train the RNN
+        :param rnn: RNN network object to train on
+        :param iters: number of iterations for training the network
+        :param dataLen: number of timesteps in each input vector
+        :param step: learning rate value
+        :param dataDir: directory to save the weight matrices
+        :param filePrefix: file prefix name for saving parameters
+        :return: - weight vectors are stored in the class object for RNN
+                 error: mean training error
+        """
+        error = 0
+        for i in xrange(iters):
+            # Generate training data
+            x, t = self.genData(dataLen)
+            # Train the network
+            err, y = self.train_fn(np.zeros(self.nh, ), x, t, step)
+            error += err
+        error /= iters
+        curTime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        rnnName = dataDir + filePrefix + '-%d-%d-%d-%s.npz' % \
+                            (self.nh, self.nin, self.nout, curTime)
+        self.saveNetwork(rnnName)
+        return error
+
+    def testNetwork(self, dataLen):
+        """
+        Test the network with a new input sequence
+        :param rnn: RNN object, with weight parameters
+        :param dataLen: number of timesteps in each input vector
+        :return: err - testing error
+        """
+        # Generate test data
+        x, t = self.genData(dataLen)
+        # Test the network
+        _, y = self.train_fn(np.zeros(self.nh, ), x, np.zeros((dataLen, 1)), 0)
+        # Compute the error between computed output and actual target
+        err = ((y - t) ** 2).sum() / dataLen
+        return err
