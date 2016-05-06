@@ -7,6 +7,7 @@ import random
 from RNNPy import RNNPy
 from datetime import datetime
 import matplotlib.pyplot as plt
+import time
 
 class RNNPy1DPrewittX(RNNPy):
 
@@ -45,11 +46,12 @@ curTime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 # Perform gradient checking
 result = rnnPy.gradientCheck(trainLen)
 
-
+startTime = time.time()
 trainLosses = rnnPy.trainNetworkSGD(iters, trainLen, step, nepoch,
                                     dataDir, filePrefix)
-
+endTime = time.time()
 print "Training error: ", np.mean(np.array(trainLosses))
+print "Training time: ", (endTime - startTime), " ms"
 fig = plt.figure()
 plt.plot(np.arange(1, nepoch+1), trainLosses, 'go',
          np.arange(1, nepoch+1), trainLosses, 'k')

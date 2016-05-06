@@ -139,16 +139,17 @@ class RNNPy(object):
         # Derivative of loss w.r.t. W_hy
         # dE_hy : nh x nout
         dE_hy = np.dot(h[1:,:].T, deltaOutput)
+        hstep = (1 - h ** 2)
 
         dhh = np.zeros((T + 1, self.nh))
         for tstep in xrange(T, 0, -1):
             # dE_t/dy_t * dy_t/dh_t
             dhh[tstep] += np.dot(self.W_hy, deltaOutput[tstep-1])
-            r = dhh[tstep] * (1 - h[tstep, :] ** 2)
+            r = (dhh[tstep] * hstep[tstep]).T
             dhh[tstep - 1] += np.dot(self.W_hh, r)
 
-            dE_xh += np.outer(x[tstep - 1, :], r)
-            dE_hh += np.outer(h[tstep - 1, :], r)
+            dE_xh +=np.reshape(x[tstep - 1, :], (self.nin, 1)) * r
+            dE_hh += np.reshape(h[tstep - 1, :], (self.nh, 1)) * r
 
         return (dE_xh, dE_hh, dE_hy)
 
@@ -284,8 +285,9 @@ class RNNPy(object):
             totalLoss /= iters
 
             losses += [totalLoss]
-            curTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print "%s: Epoch = %d, loss = %f" % (curTime, epoch, totalLoss)
+            #curTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            #print "%s: Epoch = %d, loss = %f" % (curTime, epoch, totalLoss)
+            print "Epoch = %d, loss = %f" % (epoch, totalLoss)
 
         curTime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         rnnName = dataDir + '/' + filePrefix + '-%d-%d-%d-%s.npz' % \
