@@ -58,7 +58,7 @@ class RNNTheanoBatch(object):
                                                          self.W_hy])
 
         # Error between output and target
-        self.error = ((self.y - self.t) ** 2).sum().sum().sum()
+        self.error = 0.5 * ((self.y - self.t) ** 2).sum().sum()
 
         # BPTT (back-propagation through time)
         # Gradients
@@ -125,7 +125,9 @@ class RNNTheanoBatch(object):
         """
 
         error = []
-        changedIter = 1000
+        changedIter = 500
+        changeIter = 0
+        iterThresh = 1000
         for i in xrange(iters):
             # Generate training data
             x, t = self.genData(dataLen)
@@ -134,15 +136,15 @@ class RNNTheanoBatch(object):
             error += [err]
             print "Error for iter: ", i, " is ", err, ", meanErr: ", \
                     err / (y.shape[0] * y.shape[1])
-            changedIter -= 1
+            changeIter += 1
             # Decay learning rate if loss didn't change in last 100 iterations
-            if i > 998 and changedIter == 0:
-                changedIter = 1000
-                last100Err = np.mean(np.array(error[i-998:i]))
+            if changeIter >= changedIter and i >= iterThresh:
+                changeIter = 0
+                last100Err = np.mean(np.array(error[i-iterThresh:i]))
                 print "abs(err - last100Err): ", abs(err - last100Err)
                 if (abs(err - last100Err) <= errChangeThresh):
                     step *= decay
-                    print "New error rate: ", step
+                    print "New LEARNING rate: ", step
         curTime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         rnnName = dataDir + filePrefix + '-%d-%d-%d-%s.npz' % \
                             (self.nh, self.nin, self.nout, curTime)
@@ -162,5 +164,5 @@ class RNNTheanoBatch(object):
         _, y = self.train_fn(np.zeros((self.nbatches, self.nh)), x,
                              np.zeros((dataLen, self.nbatches, self.nout)), 0)
         # Compute the error between computed output and actual target
-        err = ((y - t) ** 2).sum().sum().sum() / (dataLen * self.nbatches)
+        err = 0.5 * ((y - t) ** 2).sum().sum().sum() / (dataLen * self.nbatches)
         return err

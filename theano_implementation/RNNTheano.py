@@ -54,7 +54,7 @@ class RNNTheano(object):
                                                          self.W_hy])
 
         # Error between output and target
-        self.error = ((self.y - self.t) ** 2).sum()
+        self.error = 0.5 * ((self.y - self.t) ** 2).sum()
         # BPTT (back-propagation through time)
         # Gradients
         self.gW_hh, self.gW_xh, self.gW_hy = TT.grad(self.error,
@@ -101,7 +101,7 @@ class RNNTheano(object):
                            self.W_hy.get_value()
         np.savez(paramFile, W_hh=W_hh, W_xh=W_xh, W_hy=W_hy)
 
-    def trainNetwork(self, iters, dataLen, step, dataDir, filePrefix):
+    def trainNetwork(self, iters, epochs, dataLen, step, dataDir, filePrefix):
         """
         Train the RNN
         :param rnn: RNN network object to train on
@@ -114,18 +114,25 @@ class RNNTheano(object):
                  error: mean training error
         """
         error = 0
-        for i in xrange(iters):
-            # Generate training data
-            x, t = self.genData(dataLen)
-            # Train the network
-            err, y = self.train_fn(np.zeros(self.nh, ), x, t, step)
-            error += err
-        error /= iters
+        losses = []
+        for idx in xrange(epochs):
+            curErr = 0
+            for i in xrange(iters):
+                # Generate training data
+                x, t = self.genData(dataLen)
+                # Train the network
+                err, y = self.train_fn(np.zeros(self.nh, ), x, t, step)
+                curErr += err
+                error += err
+            curErr /= iters
+            losses += [curErr]
+            print "Epoch %d: loss = %f" % (idx, curErr)
+        error /= (iters * epochs)
         curTime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        rnnName = dataDir + filePrefix + '-%d-%d-%d-%s.npz' % \
+        rnnName = dataDir + '/' + filePrefix + '-%d-%d-%d-%s.npz' % \
                             (self.nh, self.nin, self.nout, curTime)
         self.saveNetwork(rnnName)
-        return error
+        return error, losses
 
     def testNetwork(self, dataLen):
         """

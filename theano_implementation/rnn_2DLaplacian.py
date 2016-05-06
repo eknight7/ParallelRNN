@@ -1,7 +1,5 @@
 __author__ = 'Esha Uboweja'
 
-__author__ = 'Esha Uboweja'
-
 # This RNN learns a 2-D discrete Laplacian edge detection filter
 # [ 0,  1, 0
 #   1, -4, 1
@@ -35,12 +33,12 @@ class RNNTheano2DLaplacian(RNNTheanoBatch):
                 t[j, b, :] = np.multiply(M, x[j-1:j+2, b, :]).sum()
         return x, t
 
-    def imageTest(self, im):
+    def imageTest(self, im, M):
         s = im.shape[0]
         res = np.zeros((s, s))
         sm = np.zeros((s, s))
         for col in xrange(1, s - 2):
-            colSet = np.reshape(im[:, col-1:col+2], (s, 1, nin))
+            colSet = np.reshape(im[:, col-1:col+2], (s, 1, self.nin))
             _, y = self.train_fn(np.zeros((1, self.nh)), colSet,
                                       np.zeros((s, 1, 1)), 0)
             res[:, col] = np.reshape(y, (s,))
@@ -83,7 +81,7 @@ nin = 3
 # Number of output units
 nout = 1
 # Number of batches
-nbatches = 100
+nbatches = 200
 
 # Create RNN using the RNNTheano framework
 rnnTheano = RNNTheano2DLaplacian(nh, nin, nout, nbatches)
@@ -132,6 +130,17 @@ s4 = s / 4
 im[s4:-s4, s4:-s4] = 1
 sx = ndimage.convolve(im, M)
 
-res, sm = rnnTheano.imageTest(im)
+res, sm = rnnTheano.imageTest(im, M)
 filePrefix = 'rnn_2DLaplacian'
-imageTestPlot(rnnTheano, im, sx, sx, res, resDir, filePrefix)
+imageTestPlot(rnnTheano, im, sx, sm, res, resDir, filePrefix)
+
+dataDir = '../data/'
+imList = ['airliner_s_001152.png', 'automobile_s_000220.png',
+          'monoplane_s_001328.png', 'riding_horse_s_000148.png']
+for imname in imList:
+    im = ndimage.imread(dataDir + imname, 'L')
+
+    sx = ndimage.sobel(im, axis=1, mode='constant')
+    res, sm = rnnTheano.imageTest(im, M)
+    filePrefix = 'rnn_2DLaplacian_' + imname.split(".")[0]
+    imageTestPlot(rnnTheano, im, sx, sm, res, resDir, filePrefix)
