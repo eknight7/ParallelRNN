@@ -9,3 +9,6 @@
 
 # Ignore data folder
 data/
+
+# Python Notebook checkpoints
+.ipynb_checkpoints/
