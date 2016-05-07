@@ -45,6 +45,37 @@
 <p>Esha Uboweja, Bojian Han</p>
 
 <h1>
+<a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h1>
+
+<p>We have a NumPy implementation (which is faster than the Theano RNN implementation) and a Halide implementation for an RNN that learns a Sobel filter (with data parallelism via mini-batching). Some timing results:</p>
+
+<p>int T = 1;
+int num_input = 3072;
+int num_hidden = 3072;
+int num_output = 3072;
+int batch_size = 1000;</p>
+
+<p>One Epoch speed:</p>
+
+<p>Halide Serial
+Time: 366.805297</p>
+
+<p>Halide Parallel + Tile
+Time: 26.544398</p>
+
+<p>Halide Parallel + Tile + Vectorize(32)
+Time: 14.087402</p>
+
+<p>NumPy
+Time: 2.93605184555</p>
+
+<p>int T = 10;
+NumPy
+16.8153629303</p>
+
+<hr>
+
+<h1>
 <a id="project-checkpoint" class="anchor" href="#project-checkpoint" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Checkpoint</h1>
 
 <h2>
