@@ -45,33 +45,15 @@
 <p>Esha Uboweja, Bojian Han</p>
 
 <h1>
-<a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h1>
+<a id="project-update" class="anchor" href="#project-update" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Update</h1>
 
-<p>We have a NumPy implementation (which is faster than the Theano RNN implementation) and a Halide implementation for an RNN that learns a Sobel filter (with data parallelism via mini-batching). Some timing results (on latedays cluster):</p>
+<p>In our project, we implemented a parallel RNN that trains using backpropagation through time (BPTT) in Halide and benchmarked our Halide implementation against our implementation of Theano RNN and NumPy RNN which are highly optimized for the task.</p>
 
-<p>int T = 1;
-int num_input = 3072;
-int num_hidden = 3072;
-int num_output = 3072;
-int batch_size = 1000;</p>
+<p>We have made algorithmic improvements to the backpropagation algorithm shown in the (<a href="http://www.wildml.com/2015/09/recurrent-neural-networks-tutorial-part-2-implementing-a-language-model-rnn-with-python-numpy-and-theano/">WildML tutorial</a>)  which has an O(N^2) algorithm to implement BPTT, w.r.t. The number of input, hidden and output nodes in the RNN. Our version uses an O(N) algorithm for BPTT and this runs much faster. We have also implemented an RNN in NumPy which produces numerically equivalent updates and results as the original Theano RNN implementation, with some variation in floating point accuracy. Our NumPy implementation achieved over 2x speedup for small inputs and is slightly  faster than Theano for larger inputs.</p>
 
-<p>One Epoch speed:</p>
+<p>In Halide, we have utilized parallelism and scheduling techniques that we learnt in the first 3 assignments of the class as well as techniques for matrix multiplication and inspirations from Spark RDD lecture. This is demonstrated via vectorization of code using Halide scheduling optimizations, parallelization using multiple threads using the Halide scheduler, tiling for matrix operations, loop fusing via both of Halide JIT and Halide AOT pipelines, as well as  manual loop fusing. Additionally, we have also explored the usage of AOT to remove the excessive compilation time due to JIT for functions that are repeatedly compiled and reused.</p>
 
-<p>Halide Serial
-Time: 366.805297</p>
-
-<p>Halide Parallel + Tile
-Time: 26.544398</p>
-
-<p>Halide Parallel + Tile + Vectorize(32)
-Time: 14.087402</p>
-
-<p>NumPy
-Time: 2.93605184555</p>
-
-<p>int T = 10;
-NumPy
-16.8153629303</p>
+<p>Our current Halide implementation scales well for large inputs, runs only at 50% of the speed of Numpy version for large inputs of 1024 by 1024 images. Take note however that this is a HUGE improvement from same Halide code without the optimizations we described above, as the naive serial Halide implementation is almost 100~300 times slower than the NumPy version. For example, 1 epoch of training the RNN takes 366 seconds in the naive Halide implementation, 8 seconds in our optimized Halide implementation and 5 seconds in our NumPy implementation. </p>
 
 <hr>
 
