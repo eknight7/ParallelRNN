@@ -11,16 +11,25 @@ DYLD_LIBRARY_PATH=~/Halide/bin ./rnn;
 using namespace Halide;
 
 static int T = 10;
-static int num_input = 1024;
-static int num_hidden = 1024;
-static int num_output = 1024;
-static int batch_size = 1024;
-static int stride1 = 32;
-static int stride2 = 32;
+static int num_input = 1000;
+static int num_hidden = 1000;
+static int num_output = 1000;
+static int batch_size = 1000;
+#define ALL_DIMS 1000
+#define ROW_STRIDE (16)
 
 #define PARALLEL(func) \
     func \
-        .tile(i, j, i_outer, j_outer, i_inner, j_inner, stride1, stride2) \
+        .tile(i, j, i_outer, j_outer, i_inner, j_inner, ALL_DIMS, ROW_STRIDE) \
+        .fuse(i_outer, j_outer, tile_index) \
+        .parallel(tile_index); \
+    func \
+        .tile(i_inner, j_inner, i_inner_outer, j_inner_outer, i_inner_inner, j_inner_inner, 16, 1) \
+        .vectorize(i_inner_inner)
+
+#define PARALLEL_MATRIX(func) \
+    func \
+        .tile(i, j, i_outer, j_outer, i_inner, j_inner, 16, 64) \
         .fuse(i_outer, j_outer, tile_index) \
         .parallel(tile_index) \
         .vectorize(i_inner)
@@ -91,6 +100,7 @@ int main(int argc, char **argv) {
 
     double start_time = CycleTimer::currentSeconds();
     for (int e = 0; e < 10; e++){
+        double epoch_time = CycleTimer::currentSeconds();
         /* Forward Prop */
         Func fprop_h, fprop_y; /* New defined functions */
         fprop_h(i,j,k) = h(i,j,k); /* Initialize */
@@ -110,12 +120,12 @@ int main(int argc, char **argv) {
             Func fprop_h_t, fprop_y_t, fprop_h_tm1; /* Only for that time instance */
             /* Compute Hidden Layer at Time T */
             fprop_h_t(i,j) = tanh(sum(x(x_iter,j,t) * Wxh(i,x_iter)) + sum(h_tm1(h_iter,j) * Whh(i,h_iter)));
-            PARALLEL(fprop_h_t);
+            PARALLEL_MATRIX(fprop_h_t);
             Image<float> h_t = fprop_h_t.realize(num_hidden, batch_size);
 
             /* Compute Output Layer at Time T */
             fprop_y_t(i,j) = tanh(sum(h_t(h_iter,j) * Why(i,h_iter)));
-            PARALLEL(fprop_y_t);
+            PARALLEL_MATRIX(fprop_y_t);
             Image<float> y_t = fprop_y_t.realize(num_output, batch_size);
 
             h_tm1 = h_t;
@@ -155,7 +165,7 @@ int main(int argc, char **argv) {
 
             Func bprop_dEdh_in;
             bprop_dEdh_in(i,j) = (sum(dEdy_in(y_iter,j) * Why(y_iter,i)) + sum(dEdh_in_tp1(h_iter,j) * Whh(h_iter,i))) * (1 - h(i, j, t) * h(i, j, t));
-            PARALLEL(bprop_dEdh_in);
+            PARALLEL_MATRIX(bprop_dEdh_in);
             Image<float> dEdh_in = bprop_dEdh_in.realize(num_hidden,batch_size);
             
             /* Preserve the variable for next iteration */
@@ -167,9 +177,9 @@ int main(int argc, char **argv) {
             bprop_Ghh(i,j) = Ghh(i,j) + sum(h(j,batch_iter,t-1) * dEdh_in(i,batch_iter));
             bprop_Gxh(i,j) = Gxh(i,j) + sum(x(j,batch_iter,t) * dEdh_in(i,batch_iter));
             
-            PARALLEL(bprop_Ghy);
-            PARALLEL(bprop_Ghh);
-            PARALLEL(bprop_Gxh);
+            PARALLEL_MATRIX(bprop_Ghy);
+            PARALLEL_MATRIX(bprop_Ghh);
+            PARALLEL_MATRIX(bprop_Gxh);
             
             bprop_Gxh.realize(Gxh);
             bprop_Ghh.realize(Ghh);
@@ -189,9 +199,9 @@ int main(int argc, char **argv) {
         grad_descent_Wxh.realize(Wxh);
         grad_descent_Whh.realize(Whh);
         grad_descent_Why.realize(Why);
+        printf("[Epoch %d Time]: %f\n", e, CycleTimer::currentSeconds() - epoch_time);
 
     }
-    double end_time = CycleTimer::currentSeconds();
-    printf("Time: %f\n", end_time - start_time);
+    printf("Time: %f\n", CycleTimer::currentSeconds() - start_time);
     return 0;
 }
