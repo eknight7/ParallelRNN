@@ -15,8 +15,8 @@ static int num_input = 1024;
 static int num_hidden = 1024;
 static int num_output = 1024;
 static int batch_size = 1024;
-static int stride1 = 16;
-static int stride2 = 64;
+static int stride1 = 32;
+static int stride2 = 32;
 
 #define PARALLEL(func) \
     func \

@@ -14,6 +14,9 @@ num_input = all_dims
 num_hidden = all_dims
 num_output = all_dims
 batch_size = all_dims
+num_input_big = 1024
+num_output_big = 1024
+batch_size_big = 1024
 
 # Weight Matrices
 TT_Wxh = TT.matrix(dtype='float32') # Weight from Input to Hidden
@@ -42,8 +45,8 @@ TT_Gxh, TT_Ghh, TT_Ghy = TT.grad(error, [TT_Wxh, TT_Whh, TT_Why])
 # Compiled Function
 fn = theano.function([TT_x,  TT_h0, TT_t, TT_Wxh, TT_Whh, TT_Why], [TT_Gxh, TT_Ghh, TT_Ghy, error])
 
-tt_x = np.zeros((T, batch_size, num_input), dtype=np.float32)
-tt_t = np.zeros((T, batch_size, num_output), dtype=np.float32)
+tt_x = np.zeros((T, batch_size_big, num_input_big), dtype=np.float32)
+tt_t = np.zeros((T, batch_size_big, num_output_big), dtype=np.float32)
 for i in range(T):
     tt_x[i] = (scipy.misc.imread("images/X_%d.png" % (i+1)) / 255.0) - 0.5
     tt_t[i] = (scipy.misc.imread("images/T_%d.png" % (i+1)) / 255.0) - 0.5
@@ -51,10 +54,12 @@ tt_h0  = (scipy.misc.imread("images/h0.png") / 255.0) - 0.5
 tt_Wxh = (scipy.misc.imread("images/Wxh.png") / 255.0) - 0.5
 tt_Whh = (scipy.misc.imread("images/Whh.png") / 255.0) - 0.5
 tt_Why = (scipy.misc.imread("images/Why.png") / 255.0) - 0.5
-tt_h0 = tt_h0.astype(np.float32)
-tt_Wxh = tt_Wxh.astype(np.float32)
-tt_Whh = tt_Whh.astype(np.float32)
-tt_Why = tt_Why.astype(np.float32)
+tt_x = tt_x[:,:batch_size,:num_input]
+tt_t =  tt_t[:,:batch_size,:num_output]
+tt_h0 = tt_h0.astype(np.float32)[:batch_size,:num_hidden]
+tt_Wxh = tt_Wxh.astype(np.float32)[:num_input,:num_hidden]
+tt_Whh = tt_Whh.astype(np.float32)[:num_hidden,:num_hidden]
+tt_Why = tt_Why.astype(np.float32)[:num_hidden,:num_output]
 
 learning_rate = 0.01
 

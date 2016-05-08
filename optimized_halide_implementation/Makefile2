@@ -29,4 +29,5 @@ all: $(MAIN)
 	@echo Project is compiled!
 
 $(MAIN): $(OBJS)
-	$(CC) $(CPPFLAGS) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS) $(EXTRA_SCRIPTS)
+	$(CC) $(CPPFLAGS) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS) $(EXTRA_SCRIPTS) \
+    -march=haswell -ffast-math -O2 -ftree-vectorize

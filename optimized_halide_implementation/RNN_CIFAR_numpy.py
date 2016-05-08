@@ -14,6 +14,9 @@ num_input = all_dims
 num_hidden = all_dims
 num_output = all_dims
 batch_size = all_dims
+num_input_big = 1024
+num_output_big = 1024
+batch_size_big = 1024
 
 def trainNetwork(np_x,  np_h0, np_t, np_Wxh, np_Whh, np_Why):
     # Setup for Forward propagation
@@ -55,8 +58,8 @@ def testNetwork(np_x,  np_h0, np_t, np_Wxh, np_Whh, np_Why):
         np_y[i] = np.tanh(np.dot(np_h[i], np_Why))
     return np_y
 
-np_x = np.zeros((T, batch_size, num_input), dtype=np.float32)
-np_t = np.zeros((T, batch_size, num_output), dtype=np.float32)
+np_x = np.zeros((T, batch_size_big, num_input_big), dtype=np.float32)
+np_t = np.zeros((T, batch_size_big, num_output_big), dtype=np.float32)
 for i in range(T):
     np_x[i] = (scipy.misc.imread("images/X_%d.png" % (i+1)) / 255.0) - 0.5
     np_t[i] = (scipy.misc.imread("images/T_%d.png" % (i+1)) / 255.0) - 0.5
@@ -64,10 +67,12 @@ np_h0  = (scipy.misc.imread("images/h0.png") / 255.0) - 0.5
 np_Wxh = (scipy.misc.imread("images/Wxh.png") / 255.0) - 0.5
 np_Whh = (scipy.misc.imread("images/Whh.png") / 255.0) - 0.5
 np_Why = (scipy.misc.imread("images/Why.png") / 255.0) - 0.5
-np_h0 = np_h0.astype(np.float32)
-np_Wxh = np_Wxh.astype(np.float32)
-np_Whh = np_Whh.astype(np.float32)
-np_Why = np_Why.astype(np.float32)
+np_x = np_x[:,:batch_size,:num_input]
+np_t = np_t[:,:batch_size,:num_output]
+np_h0 = np_h0.astype(np.float32)[:batch_size,:num_hidden]
+np_Wxh = np_Wxh.astype(np.float32)[:num_input,:num_hidden]
+np_Whh = np_Whh.astype(np.float32)[:num_hidden,:num_hidden]
+np_Why = np_Why.astype(np.float32)[:num_hidden,:num_output]
 
 learning_rate = 0.01
 

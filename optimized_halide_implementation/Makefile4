@@ -19,11 +19,11 @@ LIBS = -lHalide -ldl
 EXTRA_SCRIPTS = `pkg-config --libs protobuf libpng`
 
 # define the C source files
-SRCS = RNN_CIFAR_parallel.cpp
+SRCS = RNN_JIT.cpp
 
 OBJS = $(SRCS:.cc=.o)
 
-MAIN = RNN_CIFAR
+MAIN = RNN_JIT
 
 all: $(MAIN)
 	@echo Project is compiled!

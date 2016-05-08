@@ -8,7 +8,18 @@ using namespace Halide;
 #define NUM_HIDDEN (ALL_DIMS)
 #define NUM_OUTPUT (ALL_DIMS)
 #define BATCH_SIZE (ALL_DIMS)
+#define ROW_STRIDE (16)
+
 #define PARALLEL(func) \
+    func \
+        .tile(i, j, i_outer, j_outer, i_inner, j_inner, ALL_DIMS, ROW_STRIDE) \
+        .fuse(i_outer, j_outer, tile_index) \
+        .parallel(tile_index); \
+    func \
+        .tile(i_inner, j_inner, i_inner_outer, j_inner_outer, i_inner_inner, j_inner_inner, 16, 1) \
+        .vectorize(i_inner_inner)
+
+#define PARALLEL_MATRIX(func) \
     func \
         .tile(i, j, i_outer, j_outer, i_inner, j_inner, 16, 64) \
         .fuse(i_outer, j_outer, tile_index) \
@@ -17,8 +28,8 @@ using namespace Halide;
 
 int main(){
     /* Set the variables i,j,k */
-    Var i, i_outer, i_inner;
-    Var j, j_outer, j_inner;
+    Var i, i_outer, i_inner, i_inner_outer, i_inner_inner;
+    Var j, j_outer, j_inner, j_inner_outer, j_inner_inner;
     Var k, tile_index;
     /* Set the forward propagation iterator */
     RDom rx(0, NUM_INPUT);
@@ -57,13 +68,13 @@ int main(){
     /* Forward propagation for H at time t */
     Func fprop_h_t;
     fprop_h_t(i,j) = tanh(sum(x(rx,j,t) * Wxh(i,rx)) + sum(h_tm1(rh,j) * Whh(i,rh)));
-    PARALLEL(fprop_h_t);
+    PARALLEL_MATRIX(fprop_h_t);
     fprop_h_t.compile_to_file("fprop_h_t", {t, x, h_tm1, Wxh, Whh});
 
     /* Forward propagation for Y at time t */
     Func fprop_y_t;
     fprop_y_t(i,j) = tanh(sum(h_t(rh,j) * Why(i,rh)));
-    PARALLEL(fprop_y_t);
+    PARALLEL_MATRIX(fprop_y_t);
     fprop_y_t.compile_to_file("fprop_y_t", {h_t, Why});
 
     /* Calculate Loss */
@@ -86,25 +97,25 @@ int main(){
     /* Compute error with respect to (Wxh x_t + Whh h_t) */
     Func bprop_dEdh_in;
     bprop_dEdh_in(i,j) = (sum(dEdy_in(ry,j) * Why(ry,i)) + sum(dEdh_in_tp1(rh,j) * Whh(rh,i)))*(1-h(i,j,t)*h(i,j,t));
-    PARALLEL(bprop_dEdh_in);
+    PARALLEL_MATRIX(bprop_dEdh_in);
     bprop_dEdh_in.compile_to_file("bprop_dEdh_in",{t, h, dEdh_in_tp1, dEdy_in, Whh, Why});
 
     /* Calculate Gradients Ghy */
     Func bprop_Ghy;
     bprop_Ghy(i,j) = Ghy(i,j) + sum(h(j,rb,t) * dEdy_in(i,rb));
-    PARALLEL(bprop_Ghy);
+    PARALLEL_MATRIX(bprop_Ghy);
     bprop_Ghy.compile_to_file("bprop_Ghy",{t, h, dEdy_in, Ghy});
 
     /* Calculate Gradients Ghh */
     Func bprop_Ghh; 
     bprop_Ghh(i,j) = Ghh(i,j) + sum(h(j,rb,t-1) * dEdh_in(i,rb));
-    PARALLEL(bprop_Ghh);
+    PARALLEL_MATRIX(bprop_Ghh);
     bprop_Ghh.compile_to_file("bprop_Ghh",{t,h,dEdh_in,Ghh});
 
     /* Calculate Gradients Gxh */
     Func bprop_Gxh;
     bprop_Gxh(i,j) = Gxh(i,j) + sum(x(j,rb,t) * dEdh_in(i,rb));
-    PARALLEL(bprop_Gxh);
+    PARALLEL_MATRIX(bprop_Gxh);
     bprop_Gxh.compile_to_file("bprop_Gxh",{t,x,dEdh_in,Gxh});
 
     /* Gradient Descent */

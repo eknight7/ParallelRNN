@@ -22,19 +22,23 @@ using namespace Halide;
 #define NUM_HIDDEN (ALL_DIMS)
 #define NUM_OUTPUT (ALL_DIMS)
 #define BATCH_SIZE (ALL_DIMS)
+#define ROW_STRIDE (16)
+
 #define PARALLEL(func) \
     func \
-        .tile(i, j, i_outer, j_outer, i_inner, j_inner, 16, 64) \
+        .tile(i, j, i_outer, j_outer, i_inner, j_inner, ALL_DIMS, ROW_STRIDE) \
         .fuse(i_outer, j_outer, tile_index) \
-        .parallel(tile_index) \
-        .vectorize(i_inner)
+        .parallel(tile_index); \
+    func \
+        .tile(i_inner, j_inner, i_inner_outer, j_inner_outer, i_inner_inner, j_inner_inner, 16, 1) \
+        .vectorize(i_inner_inner)
 
 int main(int argc, char **argv) {
     /* Name of Input Files */
     char name[100];
     /* Set the variables i,j,k */
-    Var i, i_outer, i_inner;
-    Var j, j_outer, j_inner;
+    Var i, i_outer, i_inner, i_inner_outer, i_inner_inner;
+    Var j, j_outer, j_inner, j_inner_outer, j_inner_inner;
     Var k, tile_index;
     /* Loading Image for Input X */
     Func load_x; 
