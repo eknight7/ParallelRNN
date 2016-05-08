@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     Image<float> h = load_h.realize(NUM_HIDDEN, BATCH_SIZE, T + 1);
 
     /* Load y */
-    Image<float> y(BATCH_SIZE, NUM_OUTPUT, T+1);
+    Image<float> y(NUM_OUTPUT, BATCH_SIZE, T+1);
 
     /* Load Wxh */
     Func load_Wxh;
@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
     /* Training */
     double start_time = CycleTimer::currentSeconds();
     for (int epoch_num = 0; epoch_num < 10; epoch_num++) {
+
 
         /* Forward propagation for all time */
         Func fprop_h, fprop_y; 
@@ -154,7 +155,7 @@ int main(int argc, char **argv) {
             bprop_Ghh(t, h.raw_buffer(), dEdh_in.raw_buffer(), Ghh.raw_buffer(), Ghh.raw_buffer());
             bprop_Gxh(t, x.raw_buffer(), dEdh_in.raw_buffer(), Gxh.raw_buffer(), Gxh.raw_buffer());
         }
-        //printf("Bprop Time: %f\n", CycleTimer::currentSeconds() - start_time);
+        printf("Bprop Time: %f\n", CycleTimer::currentSeconds() - start_time);
 
         /* Gradient Descent */
         float learning_rate = 0.01f;
