@@ -1,0 +1,32 @@
+# define the C compiler to use
+CC = g++
+
+# define any directories containing header files other than /usr/include
+IDIR = ./include \
+    -I/home/15-418/Halide/include \
+    -I/home/15-418/Halide/tools \
+    `pkg-config --cflags-only-I protobuf`
+
+# define any compile-time flags
+CPPFLAGS  = --std=c++11 -g -fopenmp -Wall -I $(IDIR)
+
+# define library paths in addition to /usr/lib
+LFLAGS = -L /home/15-418/Halide/bin
+
+# define any libraries to link into executable:
+LIBS = -lHalide -ldl
+
+EXTRA_SCRIPTS = `pkg-config --libs protobuf libpng`
+
+# define the C source files
+SRCS = RNN_CIFAR_parallel.cpp
+
+OBJS = $(SRCS:.cc=.o)
+
+MAIN = RNN_CIFAR
+
+all: $(MAIN)
+	@echo Project is compiled!
+
+$(MAIN): $(OBJS)
+	$(CC) $(CPPFLAGS) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS) $(EXTRA_SCRIPTS)

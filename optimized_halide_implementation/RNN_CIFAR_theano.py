@@ -9,21 +9,22 @@ import matplotlib.pyplot as plt
 
 # Total Time Step
 T = 10
-num_input = 1024
-num_hidden = 1024
-num_output = 1024
-batch_size = 1024
+all_dims = 1024
+num_input = all_dims
+num_hidden = all_dims
+num_output = all_dims
+batch_size = all_dims
 
 # Weight Matrices
-TT_Wxh = TT.matrix() # Weight from Input to Hidden
-TT_Why = TT.matrix() # Weight from Hidden to Output
-TT_Whh = TT.matrix() # Weight from Hidden to Hidden
+TT_Wxh = TT.matrix(dtype='float32') # Weight from Input to Hidden
+TT_Why = TT.matrix(dtype='float32') # Weight from Hidden to Output
+TT_Whh = TT.matrix(dtype='float32') # Weight from Hidden to Hidden
 
 # Input/Target Matrices
-TT_x = TT.tensor3() # Input matrix by time
-TT_t = TT.tensor3() # Target matrix by time
-TT_h0 = TT.matrix() # Initial hidden layer
-TT_y0 = TT.matrix() # Initial output layer
+TT_x = TT.tensor3(dtype='float32') # Input matrix by time
+TT_t = TT.tensor3(dtype='float32') # Target matrix by time
+TT_h0 = TT.matrix(dtype='float32') # Initial hidden layer
+TT_y0 = TT.matrix(dtype='float32') # Initial output layer
 
 # Step function to link the network together
 def step(TT_x_t, TT_h_tm1, TT_Wxh, TT_Whh, TT_Why):
@@ -41,8 +42,8 @@ TT_Gxh, TT_Ghh, TT_Ghy = TT.grad(error, [TT_Wxh, TT_Whh, TT_Why])
 # Compiled Function
 fn = theano.function([TT_x,  TT_h0, TT_t, TT_Wxh, TT_Whh, TT_Why], [TT_Gxh, TT_Ghh, TT_Ghy, error])
 
-tt_x = np.zeros((T, batch_size, num_input))
-tt_t = np.zeros((T, batch_size, num_output))
+tt_x = np.zeros((T, batch_size, num_input), dtype=np.float32)
+tt_t = np.zeros((T, batch_size, num_output), dtype=np.float32)
 for i in range(T):
     tt_x[i] = (scipy.misc.imread("images/X_%d.png" % (i+1)) / 255.0) - 0.5
     tt_t[i] = (scipy.misc.imread("images/T_%d.png" % (i+1)) / 255.0) - 0.5
@@ -50,6 +51,10 @@ tt_h0  = (scipy.misc.imread("images/h0.png") / 255.0) - 0.5
 tt_Wxh = (scipy.misc.imread("images/Wxh.png") / 255.0) - 0.5
 tt_Whh = (scipy.misc.imread("images/Whh.png") / 255.0) - 0.5
 tt_Why = (scipy.misc.imread("images/Why.png") / 255.0) - 0.5
+tt_h0 = tt_h0.astype(np.float32)
+tt_Wxh = tt_Wxh.astype(np.float32)
+tt_Whh = tt_Whh.astype(np.float32)
+tt_Why = tt_Why.astype(np.float32)
 
 learning_rate = 0.01
 

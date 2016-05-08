@@ -1,0 +1,21 @@
+#!/bin/bash
+# Merge stdout and stderr into one output file
+#PBS -j oe
+#PBS -q phi
+# Move to my $SCRATCH directory.
+cd $SCRATCH
+# Set this to the important directory.
+execdir=/home/bojianh/prnn
+cd $execdir
+rm RNN_helper 
+rm RNN_AOT
+cp Makefile2 Makefile
+make; ./RNN_helper
+cp Makefile3 Makefile
+make
+./RNN_AOT
+source activate scipy_stack
+python RNN_CIFAR_numpy.py
+# cp Makefile4 Makefile
+# make
+# ./RNN_CIFAR

@@ -17,13 +17,14 @@
 using namespace Halide;
 
 #define T (10)
-#define NUM_INPUT (1024)
-#define NUM_HIDDEN (1024)
-#define NUM_OUTPUT (1024)
-#define BATCH_SIZE (1024)
+#define ALL_DIMS (1024)
+#define NUM_INPUT (ALL_DIMS)
+#define NUM_HIDDEN (ALL_DIMS)
+#define NUM_OUTPUT (ALL_DIMS)
+#define BATCH_SIZE (ALL_DIMS)
 #define PARALLEL(func) \
     func \
-        .tile(i, j, i_outer, j_outer, i_inner, j_inner, 32, 32) \
+        .tile(i, j, i_outer, j_outer, i_inner, j_inner, 16, 64) \
         .fuse(i_outer, j_outer, tile_index) \
         .parallel(tile_index) \
         .vectorize(i_inner)
@@ -41,9 +42,9 @@ int main(int argc, char **argv) {
     for (int a = 1; a <= T; a++){
         sprintf(name, "images/X_%d.png", a);
         Image<uint8_t> img_x_t = Tools::load_image(name);
-        load_x(i, j, a) = cast<float>(img_x_t(j,i)) / 255.f - 0.5f;
+        load_x(i, j, a) = cast<float>(img_x_t(i,j)) / 255.f - 0.5f;
     }
-    Image<float> x = load_x.realize(BATCH_SIZE, NUM_INPUT, T + 1);
+    Image<float> x = load_x.realize(NUM_INPUT, BATCH_SIZE, T + 1);
 
     /* Loading Image for Target */
     Func load_target;
@@ -51,17 +52,17 @@ int main(int argc, char **argv) {
     for (int a = 1; a <= T; a++){
         sprintf(name, "images/T_%d.png", a);
         Image<uint8_t> img_target_t = Tools::load_image(name);
-        load_target(i, j, a) = cast<float>(img_target_t(j,i)) / 255.f - 0.5f;
+        load_target(i, j, a) = cast<float>(img_target_t(i,j)) / 255.f - 0.5f;
     }
-    Image<float> target = load_target.realize(BATCH_SIZE, NUM_OUTPUT, T + 1);
+    Image<float> target = load_target.realize(NUM_OUTPUT, BATCH_SIZE, T + 1);
 
     /* Load h0 */
     Func load_h;
     load_h(i,j,k) = 0.f;
     sprintf(name, "images/h0.png");
     Image<uint8_t> img_h0 = Tools::load_image(name);
-    load_h(i,j,0) = cast<float>(img_h0(j,i)) / 255.f - 0.5f;
-    Image<float> h = load_h.realize(BATCH_SIZE, NUM_HIDDEN, T + 1);
+    load_h(i,j,0) = cast<float>(img_h0(i,j)) / 255.f - 0.5f;
+    Image<float> h = load_h.realize(NUM_HIDDEN, BATCH_SIZE, T + 1);
 
     /* Load y */
     Image<float> y(BATCH_SIZE, NUM_OUTPUT, T+1);
@@ -70,22 +71,22 @@ int main(int argc, char **argv) {
     Func load_Wxh;
     sprintf(name, "images/Wxh.png");
     Image<uint8_t> img_Wxh = Tools::load_image(name);
-    load_Wxh(i,j) = cast<float>(img_Wxh(j,i)) / 255.f - 0.5f;
-    Image<float> Wxh = load_Wxh.realize(NUM_INPUT, NUM_HIDDEN);
+    load_Wxh(i,j) = cast<float>(img_Wxh(i,j)) / 255.f - 0.5f;
+    Image<float> Wxh = load_Wxh.realize(NUM_HIDDEN,NUM_INPUT);
 
     /* Load Whh */
     Func load_Whh;
     sprintf(name, "images/Whh.png");
     Image<uint8_t> img_Whh = Tools::load_image(name);
-    load_Whh(i,j) = cast<float>(img_Whh(j,i)) / 255.f - 0.5f;
-    Image<float> Whh = load_Whh.realize(NUM_HIDDEN, NUM_HIDDEN);
+    load_Whh(i,j) = cast<float>(img_Whh(i,j)) / 255.f - 0.5f;
+    Image<float> Whh = load_Whh.realize(NUM_HIDDEN,NUM_HIDDEN);
 
     /* Load Why */
     Func load_Why;
     sprintf(name, "images/Why.png");
     Image<uint8_t> img_Why = Tools::load_image(name);
-    load_Why(i,j) = cast<float>(img_Why(j,i)) / 255.f - 0.5f;
-    Image<float> Why = load_Why.realize(NUM_HIDDEN, NUM_OUTPUT);
+    load_Why(i,j) = cast<float>(img_Why(i,j)) / 255.f - 0.5f;
+    Image<float> Why = load_Why.realize(NUM_OUTPUT,NUM_HIDDEN);
 
     /* Training */
     double start_time = CycleTimer::currentSeconds();
@@ -97,17 +98,17 @@ int main(int argc, char **argv) {
         fprop_y(i,j,k) = 0.f; /* Initialize */
 
         /* Set up h_tm1 */
-        Image<float> h_tm1(BATCH_SIZE, NUM_HIDDEN);
+        Image<float> h_tm1(NUM_HIDDEN,BATCH_SIZE);
         init_h0(h.raw_buffer(), h_tm1.raw_buffer());
 
         /* Forward propagation */
         for (int t = 1; t <= T; t++){
             /* Calculate h_t */
-            Image<float> h_t(BATCH_SIZE, NUM_HIDDEN);
+            Image<float> h_t(NUM_HIDDEN,BATCH_SIZE);
             fprop_h_t(t, x.raw_buffer(), h_tm1.raw_buffer(), 
                 Wxh.raw_buffer(), Whh.raw_buffer(), h_t.raw_buffer());
             /* Calculate y_t */
-            Image<float> y_t(BATCH_SIZE, NUM_OUTPUT);
+            Image<float> y_t(NUM_OUTPUT,BATCH_SIZE);
             fprop_y_t(h_t.raw_buffer(), Why.raw_buffer(), y_t.raw_buffer());
             /* Save for next iteration */
             h_tm1 = h_t;
@@ -127,19 +128,19 @@ int main(int argc, char **argv) {
         printf("Average Loss: %f\n", avg_loss(0,0,0) / (T * BATCH_SIZE * NUM_INPUT));
 
         /* Setup Gradients for Backprop */
-        Image<float> Gxh(NUM_INPUT, NUM_HIDDEN);
+        Image<float> Gxh(NUM_HIDDEN, NUM_INPUT);
         Image<float> Ghh(NUM_HIDDEN, NUM_HIDDEN);
-        Image<float> Ghy(NUM_HIDDEN, NUM_OUTPUT);
+        Image<float> Ghy(NUM_OUTPUT, NUM_HIDDEN);
         
         /* Initialize tp1 dEdh */
-        Image<float> dEdh_in_tp1(BATCH_SIZE, NUM_HIDDEN);
+        Image<float> dEdh_in_tp1(NUM_HIDDEN, BATCH_SIZE);
         init_dEdh_in_tp1(dEdh_in_tp1.raw_buffer());
 
         /* Backward propagation */
         for (int t = T; t > 0; t--){
-            Image<float> dEdy_in(BATCH_SIZE, NUM_OUTPUT);
+            Image<float> dEdy_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdy_in(t, y.raw_buffer(), target.raw_buffer(), dEdy_in.raw_buffer());
-            Image<float> dEdh_in(BATCH_SIZE, NUM_OUTPUT);
+            Image<float> dEdh_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdh_in(t, h.raw_buffer(), dEdh_in_tp1.raw_buffer(), dEdy_in.raw_buffer(), 
                 Whh.raw_buffer(), Why.raw_buffer(), dEdh_in.raw_buffer());
             /* Preserve the variable for next iteration */
