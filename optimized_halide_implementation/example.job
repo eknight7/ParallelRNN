@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Merge stdout and stderr into one output file
+#PBS -j oe
+
+#PBS -q phi
+
+# Move to my $SCRATCH directory.
+cd $SCRATCH
+
+# Set this to the important directory.
+execdir=/home/bojianh/prnn
+exe=run_test
+
+# Copy executable to $SCRATCH.
+cd $execdir
+
+# Run my executable
+time ./$exe
+
+source activate scipy_stack
+time python RNN_CIFAR_numpy.py
