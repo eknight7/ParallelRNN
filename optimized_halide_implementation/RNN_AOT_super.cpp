@@ -3,6 +3,7 @@
 #include "CycleTimer.h"
 #include "halide_image_io.h"
 #include "init_h0.h"
+#include "transpose.h"
 #include "fprop_h_t.h"
 #include "fprop_y_t.h"
 #include "loss.h"
@@ -93,54 +94,65 @@ int main(int argc, char **argv) {
     load_Why(i,j) = cast<float>(img_Why(i,j)) / 255.f - 0.5f;
     Image<float> Why = load_Why.realize(NUM_OUTPUT,NUM_HIDDEN);
 
+    /* Transposed Matrix */
+    Image<float> Why_T(NUM_HIDDEN,NUM_OUTPUT);
+    Image<float> Whh_T(NUM_HIDDEN,NUM_HIDDEN);
+    Image<float> Wxh_T(NUM_INPUT,NUM_HIDDEN);
+
     /* Training */
     double start_time = CycleTimer::currentSeconds();
     for (int epoch_num = 0; epoch_num < 10; epoch_num++) {
 
         double epoch_time = CycleTimer::currentSeconds();
-        /* Forward propagation for all time */
-        //Func fprop_h, fprop_y; 
-        //fprop_h(i,j,k) = h(i,j,k); /* Initialize */
-        //fprop_y(i,j,k) = 0.f; /* Initialize */
 
         /* Set up h_tm1 */
         Image<float> h_tm1(NUM_HIDDEN,BATCH_SIZE);
         init_h0(h.raw_buffer(), h_tm1.raw_buffer());
 
+        /* Transpose the 3 matrices */
+        transpose(Why.raw_buffer(), Why_T.raw_buffer());
+        transpose(Whh.raw_buffer(), Whh_T.raw_buffer());
+        transpose(Wxh.raw_buffer(), Wxh_T.raw_buffer());
+
         Image<float> h_ptr[T+1];
         Image<float> y_ptr[T+1];
         h_ptr[0] = h_tm1;
         float total_loss = 0.f;
+
+        //printf("Init Fprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
+        //epoch_time = CycleTimer::currentSeconds();
+
         /* Forward propagation */
         for (int t = 1; t <= T; t++){
             /* Calculate h_t */
             Image<float> h_t(NUM_HIDDEN,BATCH_SIZE);
             fprop_h_t(t, x.raw_buffer(), h_tm1.raw_buffer(), 
                 Wxh.raw_buffer(), Whh.raw_buffer(), h_t.raw_buffer());
+
+            //printf("fprop_h_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
+
             /* Calculate y_t */
             Image<float> y_t(NUM_OUTPUT,BATCH_SIZE);
             fprop_y_t(h_t.raw_buffer(), Why.raw_buffer(), y_t.raw_buffer());
+
+            //printf("fprop_y_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
+
             /* Save for next iteration */
             h_tm1 = h_t;
             h_ptr[t] = h_t;
             y_ptr[t] = y_t;
-            /* Save in all */
-            //fprop_h(i,j,t) = h_t(i,j);
-            //fprop_y(i,j,t) = y_t(i,j);
+
+            /* Loss */
             Image<float> avg_loss(1,1);
             loss(t, y_t.raw_buffer(), target.raw_buffer(), avg_loss.raw_buffer());
             total_loss += avg_loss(0,0);
-        }
-        //PARALLEL(fprop_h);
-        //fprop_h.realize(h);
-        //PARALLEL(fprop_y);
-        //fprop_y.realize(y);
-        //printf("Fprop Time: %f\n", CycleTimer::currentSeconds() - start_time);
 
-        /* Calculate Loss */
-        //Image<float> avg_loss(1,1,1);
-        //loss(y.raw_buffer(), target.raw_buffer(), avg_loss.raw_buffer());
-        printf("Average Loss: %f\n", total_loss / (T * BATCH_SIZE * NUM_INPUT));
+            //printf("loss_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
+        }
+
 
         /* Setup Gradients for Backprop */
         Image<float> Gxh(NUM_HIDDEN, NUM_INPUT);
@@ -150,20 +162,34 @@ int main(int argc, char **argv) {
         /* Initialize tp1 dEdh */
         Image<float> dEdh_in_tp1(NUM_HIDDEN, BATCH_SIZE);
         init_dEdh_in_tp1(dEdh_in_tp1.raw_buffer());
+        
+        //printf("Init Bprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
+        //epoch_time = CycleTimer::currentSeconds();
 
         /* Backward propagation */
         for (int t = T; t > 0; t--){
             Image<float> dEdy_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdy_in(t, y_ptr[t].raw_buffer(), target.raw_buffer(), dEdy_in.raw_buffer());
+            
+            //printf("dEdy_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
+            
             Image<float> dEdh_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdh_in(t, h_ptr[t].raw_buffer(), dEdh_in_tp1.raw_buffer(), dEdy_in.raw_buffer(), 
-                Whh.raw_buffer(), Why.raw_buffer(), dEdh_in.raw_buffer());
+                Whh_T.raw_buffer(), Why_T.raw_buffer(), dEdh_in.raw_buffer());
+
+            //printf("dEdh_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
+
             /* Preserve the variable for next iteration */
             dEdh_in_tp1 = dEdh_in;
             /* Add up the gradient */
             bprop_Ghy(t, h_ptr[t].raw_buffer(), dEdy_in.raw_buffer(), Ghy.raw_buffer(), Ghy.raw_buffer());
             bprop_Ghh(t, h_ptr[t-1].raw_buffer(), dEdh_in.raw_buffer(), Ghh.raw_buffer(), Ghh.raw_buffer());
             bprop_Gxh(t, x.raw_buffer(), dEdh_in.raw_buffer(), Gxh.raw_buffer(), Gxh.raw_buffer());
+
+            //printf("Grad_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //epoch_time = CycleTimer::currentSeconds();
         }
 
         /* Gradient Descent */
@@ -171,7 +197,6 @@ int main(int argc, char **argv) {
         grad_descent(learning_rate, Wxh.raw_buffer(), Gxh.raw_buffer(),Wxh.raw_buffer());
         grad_descent(learning_rate, Whh.raw_buffer(), Ghh.raw_buffer(),Whh.raw_buffer());
         grad_descent(learning_rate, Why.raw_buffer(), Ghy.raw_buffer(),Why.raw_buffer());
-
         printf("Epoch Time: %f\n", CycleTimer::currentSeconds() - epoch_time);
     }
     printf("Total: %f\n", CycleTimer::currentSeconds() - start_time);
