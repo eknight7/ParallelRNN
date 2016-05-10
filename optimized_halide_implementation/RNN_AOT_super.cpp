@@ -18,7 +18,7 @@
 using namespace Halide;
 
 #define T (10)
-#define ALL_DIMS (1000)
+#define ALL_DIMS (1028)
 #define NUM_INPUT (ALL_DIMS)
 #define NUM_HIDDEN (ALL_DIMS)
 #define NUM_OUTPUT (ALL_DIMS)
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
         h_ptr[0] = h_tm1;
         float total_loss = 0.f;
 
-        //printf("Init Fprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
+        //printf("Init_Fprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
         //epoch_time = CycleTimer::currentSeconds();
 
         /* Forward propagation */
@@ -129,14 +129,14 @@ int main(int argc, char **argv) {
             fprop_h_t(t, x.raw_buffer(), h_tm1.raw_buffer(), 
                 Wxh.raw_buffer(), Whh.raw_buffer(), h_t.raw_buffer());
 
-            //printf("fprop_h_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //printf("fprop-h_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
             //epoch_time = CycleTimer::currentSeconds();
 
             /* Calculate y_t */
             Image<float> y_t(NUM_OUTPUT,BATCH_SIZE);
             fprop_y_t(h_t.raw_buffer(), Why.raw_buffer(), y_t.raw_buffer());
 
-            //printf("fprop_y_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //printf("fprop-y_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
             //epoch_time = CycleTimer::currentSeconds();
 
             /* Save for next iteration */
@@ -149,11 +149,11 @@ int main(int argc, char **argv) {
             loss(t, y_t.raw_buffer(), target.raw_buffer(), avg_loss.raw_buffer());
             total_loss += avg_loss(0,0);
 
-            //printf("loss_%d: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //printf("loss_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
             //epoch_time = CycleTimer::currentSeconds();
         }
 
-
+        printf("loss: %f\n", total_loss);
         /* Setup Gradients for Backprop */
         Image<float> Gxh(NUM_HIDDEN, NUM_INPUT);
         Image<float> Ghh(NUM_HIDDEN, NUM_HIDDEN);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         Image<float> dEdh_in_tp1(NUM_HIDDEN, BATCH_SIZE);
         init_dEdh_in_tp1(dEdh_in_tp1.raw_buffer());
         
-        //printf("Init Bprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
+        //printf("Init_Bprop: %f\n", CycleTimer::currentSeconds() - epoch_time);
         //epoch_time = CycleTimer::currentSeconds();
 
         /* Backward propagation */
@@ -171,14 +171,14 @@ int main(int argc, char **argv) {
             Image<float> dEdy_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdy_in(t, y_ptr[t].raw_buffer(), target.raw_buffer(), dEdy_in.raw_buffer());
             
-            //printf("dEdy_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
-            //epoch_time = CycleTimer::currentSeconds();
+            printf("dEdy_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            epoch_time = CycleTimer::currentSeconds();
             
             Image<float> dEdh_in(NUM_OUTPUT, BATCH_SIZE);
             bprop_dEdh_in(t, h_ptr[t].raw_buffer(), dEdh_in_tp1.raw_buffer(), dEdy_in.raw_buffer(), 
                 Whh_T.raw_buffer(), Why_T.raw_buffer(), dEdh_in.raw_buffer());
 
-            //printf("dEdh_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //printf("dEdh_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
             //epoch_time = CycleTimer::currentSeconds();
 
             /* Preserve the variable for next iteration */
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
             bprop_Ghh(t, h_ptr[t-1].raw_buffer(), dEdh_in.raw_buffer(), Ghh.raw_buffer(), Ghh.raw_buffer());
             bprop_Gxh(t, x.raw_buffer(), dEdh_in.raw_buffer(), Gxh.raw_buffer(), Gxh.raw_buffer());
 
-            //printf("Grad_%d %f\n", t, CycleTimer::currentSeconds() - epoch_time);
+            //printf("Grad_[%d]: %f\n", t, CycleTimer::currentSeconds() - epoch_time);
             //epoch_time = CycleTimer::currentSeconds();
         }
 
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
         grad_descent(learning_rate, Wxh.raw_buffer(), Gxh.raw_buffer(),Wxh.raw_buffer());
         grad_descent(learning_rate, Whh.raw_buffer(), Ghh.raw_buffer(),Whh.raw_buffer());
         grad_descent(learning_rate, Why.raw_buffer(), Ghy.raw_buffer(),Why.raw_buffer());
-        printf("Epoch Time: %f\n", CycleTimer::currentSeconds() - epoch_time);
+        printf("Epoch_Time: %f\n", CycleTimer::currentSeconds() - epoch_time);
     }
     printf("Total: %f\n", CycleTimer::currentSeconds() - start_time);
 }

@@ -3,7 +3,7 @@
 using namespace Halide;
 
 #define T (10)
-#define ALL_DIMS (1000)
+#define ALL_DIMS (1028)
 #define NUM_INPUT (ALL_DIMS)
 #define NUM_HIDDEN (ALL_DIMS)
 #define NUM_OUTPUT (ALL_DIMS)
@@ -125,7 +125,7 @@ int main(){
 
     /* Calculate Gradients Ghy */
     Func bprop_Ghy("bprop_Ghy"), bprop_Ghy_A("bprop_Ghy_A"), bprop_Ghy_h_t_T("bprop_Ghy_h_t_T");
-    bprop_Ghy_h_t_T(i,j) = h_t(i,j);
+    bprop_Ghy_h_t_T(i,j) = h_t(j,i);
     PARALLEL_MATRIX(bprop_Ghy_h_t_T);
     bprop_Ghy_h_t_T.compute_root();
     bprop_Ghy_A(i,j) = sum(bprop_Ghy_h_t_T(rb,j) * dEdy_in(i,rb));
@@ -137,7 +137,7 @@ int main(){
 
     /* Calculate Gradients Ghh */
     Func bprop_Ghh("bprop_Ghh"), bprop_Ghh_A("bprop_Ghh_A"), bprop_Ghh_h_tm1_T("bprop_Ghh_h_tm1_T");
-    bprop_Ghh_h_tm1_T(i,j) = h_tm1(i,j);
+    bprop_Ghh_h_tm1_T(i,j) = h_tm1(j,i);
     PARALLEL_MATRIX(bprop_Ghh_h_tm1_T);
     bprop_Ghh_h_tm1_T.compute_root();
     bprop_Ghh_A(i,j) = sum(bprop_Ghh_h_tm1_T(rb,j) * dEdh_in(i,rb));
