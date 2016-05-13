@@ -5,6 +5,7 @@
 # Move to my $SCRATCH directory.
 cd $SCRATCH
 # Set this to the important directory.
+# Replace the below with your own
 execdir=/home/bojianh/prnn
 cd $execdir
 rm RNN_helper 
